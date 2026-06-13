@@ -17,6 +17,8 @@ services:
     envVars:
       - key: ES_HOST
         sync: false # Paste your Bonsai cluster URL here during setup
+      - key: WEB_CONCURRENCY
+        value: "1"
 
   # React frontend (Render static site — always free)
   - type: web

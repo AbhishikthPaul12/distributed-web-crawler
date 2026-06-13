@@ -1,7 +1,9 @@
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from elasticsearch.exceptions import NotFoundError
 
+from bootstrap import INDEX_NAME, ensure_search_ready, reset_ready_state, run_bootstrap
 from es_client import create_es_client
 
 # CREATE FLASK APP
@@ -16,7 +18,15 @@ CORS(app)
 es = create_es_client(request_timeout=15.0)
 
 
-INDEX_NAME = "webpages"
+def _run_search(body, from_=0, size=10):
+    ensure_search_ready(es)
+    try:
+        return es.search(index=INDEX_NAME, from_=from_, size=size, body=body)
+    except NotFoundError:
+        reset_ready_state()
+        run_bootstrap(es)
+        return es.search(index=INDEX_NAME, from_=from_, size=size, body=body)
+
 
 # HOME ROUTE
 
@@ -56,10 +66,7 @@ def search():
         elif sort_by == "url":
             sort_query = [{"url.keyword": {"order": "asc", "unmapped_type": "keyword"}}]
 
-        response = es.search(
-            index=INDEX_NAME,
-            from_=from_,
-            size=size,
+        response = _run_search(
             body={
                 "query": {
                     "bool": {
@@ -92,7 +99,9 @@ def search():
                         }
                     }
                 }
-            }
+            },
+            from_=from_,
+            size=size,
         )
 
         # FORMAT RESULTS
@@ -132,9 +141,7 @@ def autocomplete():
         return jsonify([])
 
     try:
-        response = es.search(
-            index=INDEX_NAME,
-            size=6,
+        response = _run_search(
             body={
                 "query": {
                     "match_phrase_prefix": {
@@ -143,7 +150,8 @@ def autocomplete():
                         }
                     }
                 }
-            }
+            },
+            size=6,
         )
 
         results = []
