@@ -1,0 +1,11 @@
+/* Global resets */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0b0d13;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
