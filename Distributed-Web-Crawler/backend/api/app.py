@@ -13,10 +13,7 @@ CORS(app)
 
 # CONNECT TO ELASTICSEARCH
 
-es = create_es_client(
-    connections_per_node=25,
-    request_timeout=15.0,
-)
+es = create_es_client(request_timeout=15.0)
 
 
 INDEX_NAME = "webpages"
