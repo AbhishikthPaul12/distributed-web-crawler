@@ -31,7 +31,7 @@ for page in pages:
     response = es.index(
         index=INDEX_NAME,
         id=url,
-        document=document
+        body=document
     )
 
     print("Indexed:", title.encode("ascii", errors="replace").decode("ascii"))

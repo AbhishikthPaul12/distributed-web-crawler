@@ -14,7 +14,6 @@ services:
     dockerfilePath: ./Distributed-Web-Crawler/backend/Dockerfile
     dockerContext: ./Distributed-Web-Crawler
     healthCheckPath: /
-    initialDeployHook: python scripts/render_bootstrap.py
     envVars:
       - key: ES_HOST
         sync: false # Paste your Bonsai cluster URL here during setup

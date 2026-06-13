@@ -60,34 +60,36 @@ def search():
             index=INDEX_NAME,
             from_=from_,
             size=size,
-            query={
-                "bool": {
-                    "should": [
-                        {
-                            "simple_query_string": {
-                                "query": query,
-                                "fields": ["title^3", "content"],
-                                "default_operator": "and",
-                                "boost": 2.0
+            body={
+                "query": {
+                    "bool": {
+                        "should": [
+                            {
+                                "simple_query_string": {
+                                    "query": query,
+                                    "fields": ["title^3", "content"],
+                                    "default_operator": "and",
+                                    "boost": 2.0
+                                }
+                            },
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": ["title^2", "content"],
+                                    "fuzziness": "AUTO",
+                                    "boost": 1.0
+                                }
                             }
-                        },
-                        {
-                            "multi_match": {
-                                "query": query,
-                                "fields": ["title^2", "content"],
-                                "fuzziness": "AUTO",
-                                "boost": 1.0
-                            }
+                        ]
+                    }
+                },
+                "sort": sort_query,
+                "highlight": {
+                    "fields": {
+                        "content": {
+                            "fragment_size": 150,
+                            "number_of_fragments": 1
                         }
-                    ]
-                }
-            },
-            sort=sort_query,
-            highlight={
-                "fields": {
-                    "content": {
-                        "fragment_size": 150,
-                        "number_of_fragments": 1
                     }
                 }
             }
@@ -132,14 +134,16 @@ def autocomplete():
     try:
         response = es.search(
             index=INDEX_NAME,
-            query={
-                "match_phrase_prefix": {
-                    "title": {
-                        "query": query
+            size=6,
+            body={
+                "query": {
+                    "match_phrase_prefix": {
+                        "title": {
+                            "query": query
+                        }
                     }
                 }
-            },
-            size=6
+            }
         )
 
         results = []

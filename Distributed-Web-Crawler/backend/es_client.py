@@ -1,31 +1,24 @@
 import os
-import re
+from urllib.parse import unquote, urlparse
 
 from elasticsearch import Elasticsearch
 
 
 def _parse_bonsai_url(es_host: str):
-    """Parse a Bonsai-style URL (https://user:pass@host:port) into ES 7.x kwargs."""
-    match = re.search(r"https?://([^:]+):([^@]+)@(.+)", es_host)
-    if not match:
+    """Parse a Bonsai URL into the connection format recommended by Bonsai docs."""
+    parsed = urlparse(es_host)
+    if not parsed.username or not parsed.password or not parsed.hostname:
         return None
 
-    username, password, remainder = match.group(1), match.group(2), match.group(3).rstrip("/")
-    port_match = re.search(r":(\d+)$", remainder)
+    port = parsed.port or (443 if parsed.scheme == "https" else 9200)
+    use_ssl = parsed.scheme == "https"
 
-    if port_match:
-        port = int(port_match.group(1))
-        host = remainder[: port_match.start()]
-    else:
-        port = 443 if es_host.startswith("https") else 9200
-        host = remainder
-
-    use_ssl = es_host.startswith("https")
-    return {
-        "hosts": [{"host": host, "port": port, "use_ssl": use_ssl}],
-        "http_auth": (username, password),
-        "verify_certs": use_ssl,
-    }
+    return [{
+        "host": parsed.hostname,
+        "port": port,
+        "use_ssl": use_ssl,
+        "http_auth": (unquote(parsed.username), unquote(parsed.password)),
+    }]
 
 
 def create_es_client(host=None, **kwargs):
@@ -34,7 +27,6 @@ def create_es_client(host=None, **kwargs):
     timeout = kwargs.pop("request_timeout", kwargs.pop("timeout", 30))
     max_retries = kwargs.pop("max_retries", 3)
     retry_on_timeout = kwargs.pop("retry_on_timeout", True)
-    # elasticsearch 8-only; ignore if passed by older call sites
     kwargs.pop("connections_per_node", None)
 
     transport = {
@@ -43,8 +35,8 @@ def create_es_client(host=None, **kwargs):
         "retry_on_timeout": retry_on_timeout,
     }
 
-    bonsai = _parse_bonsai_url(es_host)
-    if bonsai:
-        return Elasticsearch(**bonsai, **transport, **kwargs)
+    bonsai_hosts = _parse_bonsai_url(es_host)
+    if bonsai_hosts:
+        return Elasticsearch(bonsai_hosts, **transport, **kwargs)
 
     return Elasticsearch([es_host], **transport, **kwargs)

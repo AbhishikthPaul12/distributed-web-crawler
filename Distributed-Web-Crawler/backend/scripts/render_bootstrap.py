@@ -59,7 +59,7 @@ DEMO_PAGES = [
 INDEX_NAME = "webpages"
 
 
-def wait_for_elasticsearch(es: Elasticsearch, retries: int = 30, delay: int = 5) -> None:
+def wait_for_elasticsearch(es, retries: int = 30, delay: int = 5) -> None:
     for attempt in range(1, retries + 1):
         try:
             if es.ping():
@@ -85,27 +85,42 @@ def seed_demo_pages() -> int:
     return len(pages)
 
 
-def index_pages(es: Elasticsearch) -> None:
+def index_pages(es) -> None:
     pages = fetch_all_pages()
     print(f"Indexing {len(pages)} pages into Elasticsearch...")
     for url, title, content in pages:
         es.index(
             index=INDEX_NAME,
             id=url,
-            document={"url": url, "title": title, "content": content},
+            body={"url": url, "title": title, "content": content},
         )
         print(f"  Indexed: {title}")
     print("Indexing completed.")
 
 
+def index_is_empty(es) -> bool:
+    try:
+        if not es.indices.exists(index=INDEX_NAME):
+            return True
+        count = es.count(index=INDEX_NAME).get("count", 0)
+        return count == 0
+    except Exception:
+        return True
+
+
 def main() -> None:
+    es = create_es_client()
+    wait_for_elasticsearch(es)
+
+    if not index_is_empty(es):
+        print(f"Index '{INDEX_NAME}' already has documents — skipping bootstrap.")
+        return
+
     page_count = seed_demo_pages()
     if page_count == 0:
         print("No pages to index.")
         return
 
-    es = create_es_client()
-    wait_for_elasticsearch(es)
     index_pages(es)
 
 
