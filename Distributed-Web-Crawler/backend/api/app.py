@@ -1,7 +1,8 @@
 import os
 from flask import Flask, request, jsonify
-from elasticsearch import Elasticsearch
 from flask_cors import CORS
+
+from es_client import create_es_client
 
 # CREATE FLASK APP
 
@@ -12,13 +13,9 @@ CORS(app)
 
 # CONNECT TO ELASTICSEARCH
 
-es_host = os.environ.get("ES_HOST", "http://localhost:9200")
-es = Elasticsearch(
-    es_host,
+es = create_es_client(
     connections_per_node=25,
     request_timeout=15.0,
-    retry_on_timeout=True,
-    max_retries=3
 )
 
 

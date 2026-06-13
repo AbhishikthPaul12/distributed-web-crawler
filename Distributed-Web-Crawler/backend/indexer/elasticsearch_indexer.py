@@ -1,14 +1,13 @@
 import os
 import sys
-from elasticsearch import Elasticsearch
 
 # Add parent directory of indexer (backend) to path to import database
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database.database import fetch_all_pages
+from es_client import create_es_client
 
 # CONNECT TO ELASTICSEARCH
-es_host = os.environ.get("ES_HOST", "http://localhost:9200")
-es = Elasticsearch(es_host)
+es = create_es_client()
 
 # FETCH DATA FROM SQLITE DATABASE
 pages = fetch_all_pages()

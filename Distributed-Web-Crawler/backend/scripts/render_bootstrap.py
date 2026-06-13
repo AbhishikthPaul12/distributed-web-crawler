@@ -9,8 +9,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database.database import get_db_connection, fetch_all_pages, save_page
-from elasticsearch import Elasticsearch
+from database.database import fetch_all_pages, save_page
+
+from es_client import create_es_client
 
 DEMO_PAGES = [
     (
@@ -56,7 +57,6 @@ DEMO_PAGES = [
 ]
 
 INDEX_NAME = "webpages"
-ES_HOST = os.environ.get("ES_HOST", "http://localhost:9200")
 
 
 def wait_for_elasticsearch(es: Elasticsearch, retries: int = 30, delay: int = 5) -> None:
@@ -104,7 +104,7 @@ def main() -> None:
         print("No pages to index.")
         return
 
-    es = Elasticsearch(ES_HOST, request_timeout=30)
+    es = create_es_client()
     wait_for_elasticsearch(es)
     index_pages(es)
 
